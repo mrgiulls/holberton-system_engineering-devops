@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+#  A script that displays the name of all the files in the current directory
+#+ without their index
+listfiles=$(ls)
+for item in $listfiles;
+do
+	echo "$item" | cut -d "-" -f2
+done
