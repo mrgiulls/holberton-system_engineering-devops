@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+#Displays a list of currently bash running processes without ps
+pgrep -l bash

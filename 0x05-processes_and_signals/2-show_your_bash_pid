@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+#Displays a list of currently bash running processes without pgrep
+# shellcheck disable=SC2009
+ps -auxf | grep bash
