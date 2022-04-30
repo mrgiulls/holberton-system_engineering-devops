@@ -1,22 +1,16 @@
 #!/usr/bin/env bash
-# Script that configures a load balancer for Ubuntu 20.04
-
-sudo apt-get -y update
-sudo apt-get -y upgrade
-sudo apt-get -y install haproxy
-
-sudo chown -R ubuntu /etc/haproxy
-
-configuration="\
-frontend http
-	bind *:80
-	mode http
-	default_backend web-server
-backend web-server
-	balance roundrobin
-	server 3353-web-01 35.243.157.229 check
-	server 3353-web-02 54.85.190.148 check
-"
-
-sudo echo "$configuration" >> /etc/haproxy/haproxy.cfg
+## Linux update and upgrade
+sudo apt update && sudo apt upgrade -y
+## need to enable a dedicated PPA with the following command
+sudo apt-get install -y --no-install-recommends software-properties-common
+sudo add-apt-repository ppa:vbernat/haproxy-2.4 -y
+##  Install Haproxy
+sudo apt install haproxy -y
+## Initialization the services haproxy
+sudo service haproxy start
+##Configure Haproxy 
+sed -i "$ a frontend Frontend\n\tbind *:80\n\tmode http\n\tdefault_backend Backend\nbackend Backend\n\tbalance roundrobin\n\tserver 3255-web-01 34.73.118.91:80 check\n\tserver 3255-web-02 54.227.38.61:80 check" /etc/haproxy/haproxy.cfg
+## Restart services haproxy
 sudo service haproxy restart
+## Linux update && upgrade
+sudo apt update && sudo apt upgrade -y
