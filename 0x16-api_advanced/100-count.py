@@ -1,54 +1,89 @@
 #!/usr/bin/python3
 """Function to count words in all hot posts of a given Reddit subreddit."""
-import requests
 
 
-def count_words(subreddit, word_list, instances={}, after="", count=0):
-    """Prints counts of given words found in hot posts of a given subreddit.
-    Args:
-        subreddit (str): The subreddit to search.
-        word_list (list): The list of words to search for in post titles.
-        instances (obj): Key/value pairs of words/counts.
-        after (str): The parameter for the next page of the API results.
-        count (int): The parameter of results matched thus far.
-    """
-    url = "https://www.reddit.com/r/{}/hot/.json".format(subreddit)
-    headers = {
-        "User-Agent": "linux:0x16.api.advanced:v1.0.0 (by /u/bdov_)"
-    }
-    params = {
-        "after": after,
-        "count": count,
-        "limit": 100
-    }
-    response = requests.get(url, headers=headers, params=params,
-                            allow_redirects=False)
-    try:
-        results = response.json()
-        if response.status_code == 404:
-            raise Exception
-    except Exception:
-        print("")
-        return
 
-    results = results.get("data")
-    after = results.get("after")
-    count += results.get("dist")
-    for c in results.get("children"):
-        title = c.get("data").get("title").lower().split()
-        for word in word_list:
-            if word.lower() in title:
-                times = len([t for t in title if t == word.lower()])
-                if instances.get(word) is None:
-                    instances[word] = times
-                else:
-                    instances[word] += times
+def hot_recurse(titles, n):
+    """Does the recursion"""
+    if n < len(titles):
+        title = titles[n].get('data').get('title')
+        heaptitles = title.split()
+        heaptitles.extend(hot_recurse(titles, n + 1))
+        return heaptitles
+    return [-1]
 
-    if after is None:
-        if len(instances) == 0:
-            print("")
-            return
-        instances = sorted(instances.items(), key=lambda kv: (-kv[1], kv[0]))
-        [print("{}: {}".format(k, v)) for k, v in instances]
-    else:
-        count_words(subreddit, word_list, instances, after, count)
+
+def recurse(subreddit, hot_list=[], after=None):
+    """Function in task #1 but recursive"""
+    import requests
+
+    header = {'User-Agent': 'MyHolbertonAPI/0.0.1'}
+    response = requests.get("https://www.reddit.com/r/{}/hot.json?after={}".
+                            format(subreddit, after), headers=header).json()
+
+    if not response.get('error'):
+        after = response.get('data').get('after')
+        titles = response.get('data').get('children')
+        hot_list.extend(hot_recurse(titles, 0))
+        hot_list.remove(-1)
+        if after is not None:
+            recurse(subreddit, hot_list, after)
+        return hot_list
+    return None
+
+
+def binary_search(word, wordlist, start, end):
+    """does a binary search"""
+    if start <= end:
+        mid = (end + start) // 2
+        lowerword = word.lower()
+        midlower = wordlist[mid].lower()
+        if lowerword == midlower:
+            return mid
+        elif lowerword < midlower:
+            return binary_search(word, wordlist, start, mid - 1)
+        else:
+            return binary_search(word, wordlist, mid + 1, end)
+    return -1
+
+
+def linear_count(word, index, hot_list):
+    """frequency of a word in a list of words"""
+    count_left = 0
+    left = index
+    while word == hot_list[left]:
+        count_left += 1
+        left -= 1
+    count_right = 0
+    right = index + 1
+    while word == hot_list[right]:
+        count_right += 1
+        right += 1
+    return count_left + count_right
+
+
+def count_words(subreddit, word_list):
+    """Counts all the keywords of word_list in the given subreddit"""
+    hot_list = recurse(subreddit)
+    hot_list.sort()
+    dct_count = {}
+    for word in word_list:
+        idxsearch = binary_search(word, hot_list, 0, len(hot_list) - 1)
+        if idxsearch != -1:
+            if word.lower() not in dct_count.keys():
+                dct_count[word.lower()] = linear_count(word,
+                                                       idxsearch, hot_list)
+            else:
+                dct_count[word.lower()] += linear_count(word,
+                                                        idxsearch, hot_list)
+    sortedvalues = list(dct_count.values())
+
+    sortedvalues.sort()
+    sortedvalues.reverse()
+    sorted_dct = {}
+    for val in sortedvalues:
+        for word in dct_count.keys():
+            if dct_count[word] == val:
+                sorted_dct[word] = val
+    for key, value in sorted_dct.items():
+        print("{}: {}".format(key, value))
